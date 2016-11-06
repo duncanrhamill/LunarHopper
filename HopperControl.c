@@ -1,3 +1,15 @@
+/*-------------------------------
+
+Lunar Hopper Control System Code
+
+Written by: Marian Daogaru, mn2g12
+
+Updated by: Jack Tyler, jt6g15, Duncan Hamill, dh2g15, Boateng Opoku-Yeboah, boy1g15
+
+---------------------------------
+*/
+
+
 /*
  * PIN NUMBERS
  * Set pins for various input and output devices on arduino. e.g.- gyro, accelerometer,pressure transducer and solenoid valves.
@@ -72,7 +84,7 @@ const unsigned long mecoMinHold = 1000; // Minimum duration of MECO
  * LOSS OF SIGNAL configuration
  */
 const float maxTilt = 15.0; // Maximum tilt angle allowed during LOS autopilot control. If exceeded, the Hopper is disarmed and the rocket killed. Valid for both pitch and yaw.
-const float descentPressure = 24.5; // bar abs. This is the pressure demanded by the LOS autopilot control. Should be pressure for hover at dry hopper - 4 bar
+const float descentPressure = 24.5; // bar abs. This is the pressure demanded by the LOS autopilot control. Should be pressure for hover at dry hopper - 4 bar - Verify this
 const unsigned long expFlightTime = 15000; // Expected flight time in milliseconds.
 
 /*
@@ -101,7 +113,6 @@ const unsigned long telemetryRxMax = 3000;
  * Initialise all to false.
  */
 
-//boolean armCommand = false;
 boolean armCommand = false;
 boolean ACScommand = false;
 boolean ACTtestcommand = false;
@@ -176,7 +187,7 @@ float throttlePressure = 0;
 
 void setup() {
   Serial.begin(9600);
-  Serial.println("serial start");
+  Serial.println("Starting serial process...");
   pinMode(PT, INPUT); //Define Pressure Transducer reading as an INPUT
   pinMode(gyroPin_x, INPUT);//reads gyro input
   pinMode(gyroPin_y, INPUT);
@@ -190,19 +201,7 @@ void setup() {
   pinMode(startPin, INPUT);
   pinMode(mecoPin, INPUT);
   pinMode(throttlePin, INPUT);
-  
-  // Following pins for testing only
-  pinMode(7, OUTPUT);
-  pinMode(8, OUTPUT);
-  pinMode(9, OUTPUT);
-  pinMode(24, OUTPUT);
-  pinMode(28, OUTPUT);
-  pinMode(26, OUTPUT);
-  
-  
-  Serial.println("before high");
-  digitalWrite(24, HIGH);
-  Serial.println("after high");
+
 }
 
 /*
@@ -237,34 +236,33 @@ void loop() {
           }
       }
     } */
-  Serial.print("in loop   ");
+  Serial.print("In loop:   ");
   Serial.println(TimeZG);
   if (mecoStatus == 0)
   {
-    Serial.println("meco = 0");
+    Serial.println("MECO status = 0");
     if (startStatus == 1)
     {
-      Serial.println("start = 1");
-      digitalWrite(24, LOW);
+      Serial.println("Start = 1");
       if (ACSActive == false)
       {
-        Serial.println("acs check");
+        Serial.println("Performing ACS Check...");
         ACS_Check();
       }
       else if (Calibrated == false)
       {
-        Serial.println("calibrate");
+        Serial.println("Performing calibration...");
         ACS_Calibration();
       }
       else if (oxPulseNo < oxNoPulses)
       {
-        Serial.print("oxpulseno = ");
+        Serial.print("oxPulseNo = ");
         Serial.print(oxPulseNo);
         ox_Pulse();
       }
       else
       {
-        Serial.println("stuff in working");
+        Serial.println("Working...");
         ACS();
         throttle();
       }
@@ -273,10 +271,10 @@ void loop() {
     else
     {
       startStatus = digitalRead(startPin);
-      Serial.println("read start pin");
+      Serial.println("Reading start pin...");
     }
     mecoStatus = digitalRead(mecoPin);
-    Serial.print(" meco status = ");
+    Serial.print(" MECO status = ");
     Serial.println(mecoStatus);
   }
 
@@ -327,8 +325,6 @@ void disarm() {
 
 void meco_high() {
   Serial.println("in MECO");
-  digitalWrite(28, HIGH);
-  digitalWrite(24, LOW);
   mecoStatus = 1;
 
   pressStatus = 0; // Record Pressure Status as OFF
@@ -354,11 +350,10 @@ void meco_high() {
   digitalWrite(ox, LOW); // Close the ox solenoid
   digitalWrite(pressure, LOW); // Close the PRESSURE solenoid
   digitalWrite(vent, HIGH); // Open the VENT solenoid
-  //Open ACT valves to vent ACS system:
-  digitalWrite(ACSXRight, HIGH);
-  digitalWrite(ACSXLeft, HIGH);
-  digitalWrite(ACSYLeft, HIGH);
-  digitalWrite(ACSYRight, HIGH);
+  digitalWrite(ACSXRight, HIGH); //Open ACT valves to vent ACS system
+  digitalWrite(ACSXLeft, HIGH); // Open ACT valves to vent ACS system
+  digitalWrite(ACSYLeft, HIGH); // Open ACT valves to vent ACS system
+  digitalWrite(ACSYRight, HIGH); // Open ACT valves to vent ACS system
 
   if (!wasMECO)
   {
@@ -392,8 +387,8 @@ void ACS_Check()
     acquisitions_count = 0;
     ACSActive = true;//indiicate acs is active
     TimeZG = millis();//start zeroing time
-    ACS_Calibration();
-    Serial.print(" in check, Timezg = ");
+    ACS_Calibration(); // Calibrate ACS+sensors
+    Serial.print(" Checking, Timezg = ");
     Serial.println(TimeZG);
   }
 }
@@ -471,7 +466,7 @@ void ACS_Calibration() {
     xacc_voltage_sum += analogRead(xpin);
     yacc_voltage_sum += analogRead(ypin);
     acquisitions_count++; // Increment the counter
-    Serial.print("still calibrating at ");
+    Serial.print("Still calibrating at elapsed time: ");
     Serial.println(TimeZG + CalibrationTime-millis());
   } else {
     if (Calibrated == false) {  // If calibration time has just finished
@@ -612,7 +607,7 @@ void ox_pulse() {
   }
 }
 
-/* 29/10/16, Jack Tyler: There seems to be ox_pulse() and ox_Pulse() -- the one below seems to be the main functioin, but this needs to be verified. */
+/* 29/10/16, Jack Tyler: There seems to be ox_pulse() and ox_Pulse() -- the one below seems to be the main function, but this needs to be verified. */
 
 void ox_Pulse() {
   PTVoltage = analogRead(PT); // Read the voltage from the pressure transducer
@@ -626,12 +621,10 @@ void ox_Pulse() {
       Timepulse = millis();
       digitalWrite(ox, HIGH);
       blipFire = 1;
-      digitalWrite(26, HIGH);
     }
     else if (blipFire == 1 && blipRest == 0 && Timepulse + blipDuration < millis())
     {
       digitalWrite(ox, LOW);
-      digitalWrite(26, LOW);
       blipFire = 0;
       blipRest = 1;
       Timepulse = millis();
@@ -639,7 +632,7 @@ void ox_Pulse() {
     else if (blipFire == 0 && blipRest == 1 && Timepulse + blipRestDuration < millis())
     {
       blipRest = 0;
-      digitalWrite(7 + oxPulseNo, HIGH);
+      digitalWrite(oxPulseNo, HIGH);
       oxPulseNo++;
     }
   }
@@ -694,7 +687,7 @@ void Pressurisation() {
   PTVoltage = analogRead(PT); // Read the voltage from the pressure transducer
   currentPressure = ((PTVoltage / 1023 * 39) + 1)  ; // Calculate pressure in system in bar (abs)
 
-  Serial.print("current Pressure = ");
+  Serial.print("Current pressure = ");
   Serial.print(currentPressure);
   Serial.println("");
 
@@ -745,35 +738,31 @@ void throttle()
   currentPressure = ((PTVoltage / 1023 * 39) + 1)  ; // Calculate pressure in system in bar (abs)
 
   throttlePressure = ((analogRead(throttlePin) / 1023 * 21 )) + 19;
-  Serial.print("throttle pressure = ");
+  Serial.print("Throttle pressure = ");
   Serial.print(throttlePressure);
-  Serial.print(" current pressure = ");
+  Serial.print(" Current pressure = ");
   Serial.print(currentPressure);
 
   if (currentPressure < ignitionPressure )
   {
     digitalWrite(pressure, HIGH);
     digitalWrite(ox, LOW);
-    digitalWrite(26, LOW);
   }
   else if (throttlePressure >= currentPressure && currentPressure > ignitionPressure)
   {
     digitalWrite(pressure, HIGH);
     digitalWrite(ox, HIGH);
-    digitalWrite(26, HIGH);
   }
   else if (throttlePressure < ignitionPressure && ignitionPressure < currentPressure)
   {
     digitalWrite(pressure, LOW);
     digitalWrite(ox, LOW);
-    digitalWrite(26, LOW);
-    Serial.print(" throttle < ig< current");
+    Serial.print(" throttle < ig < current");
   }
   else if (throttlePressure < currentPressure && ignitionPressure < currentPressure && ignitionPressure < throttlePressure)
   {
     digitalWrite(pressure, LOW);
     digitalWrite(ox, HIGH);
-    digitalWrite(26, HIGH);
     Serial.print(" ig < throttle < current");
 
   }
